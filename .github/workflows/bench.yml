@@ -1,4 +1,4 @@
-name: build
+name: bench
 
 on:
   push:
@@ -7,18 +7,13 @@ on:
       - develop
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
   schedule:
-    - cron: '0 9 * * 3'
+    - cron: '0 9 * * 4'
   workflow_dispatch:
 
 jobs:
   test:
-    name: test-${{matrix.name}}
+    name: bench-${{matrix.name}}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,5 +39,12 @@ jobs:
           java-version: ${{matrix.version}}
           distribution: ${{matrix.distribution}}
           cache: maven
-      - name: verify-${{matrix.name}}
-        run: mvn clean verify --settings .settings.xml -Dgpg.skip -B -V
+      - name: build-${{matrix.name}}
+        run: mvn -P benchmark clean package -B -V
+      - name: benchmark-${{matrix.name}}
+        run: java -jar target/benchmark.jar AzamCodecBench -rf json
+      - name: upload-bench-results-${{matrix.name}}
+        uses: actions/upload-artifact@v1
+        with:
+          name: azamcodec_bench_${{matrix.name}}_${{github.sha}}
+          path: ./jmh-result.json

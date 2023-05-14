@@ -1,0 +1,16 @@
+{
+  "java.format.settings.profile": "GoogleStyle",
+  "java.format.settings.url": "./eclipse-java-google-style.xml",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "[java]": {
+    "editor.formatOnSave": true,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+  "[xml]": {
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  }
+}

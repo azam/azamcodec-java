@@ -19,27 +19,67 @@ This library is published to [Maven Central](https://central.sonatype.com/artifa
 
 ```java
 // Decode to ints
-int[] ints = AzamCodec.azamDecodeAllInts("");
+int[] ints = AzamCodec.azamDecodeInts("xytxvyyfh5wgg1"); // -559038737, 21, 49153
 
 // Decode to big endian bytes
-byte[] bytes = AzamCodec.azamDecodeAllBytes("");
+byte[][] bytes = AzamCodec.azamDecodeBytes("xytxvyyfh5wgg1"); // 0xdeadbeef, 0x15, 0xc001
 ```
 
 ### Encoding
 
 ```java
 // Encode from ints
-String encodedInts = AzamCodec.azamEncodeInts(new int[]{});
+String encodedInts = AzamCodec.azamEncodeInts(new int[]{ -559038737, 21, 49153 }); // "xytxvyyfh5wgg1"
 
 // Encode from bytes
-String encodedBytes = AzamCodec.azamEncodeBytes(new byte[][]{});
+String encodedBytes = AzamCodec.azamEncodeBytes(new byte[][]{ //
+    new byte[] { 0xde, 0xad, 0xbe, 0xef }, //
+    new byte[] { 0x15 }, //
+    new byte[] { 0xc0, 0x01 } //
+}); // "xytxvyyfh5wgg1"
+```
+
+### Practical example
+
+Azam Codec is designed to be a sortable identifier representation, so using it to represent multi sectioned identifier is the best example.
+
+```java
+public class RecordId {
+  int tenantId;
+  int objectId;
+  int recordId;
+
+  public RecordId(String id) throws ParseException {
+    int[] sections = AzamCodec.azamDecodeInts(id);
+    this.tenantId = sections[0];
+    this.objectId = sections[1];
+    this.recordId = sections[2];
+  }
+
+  public String toString() {
+    return AzamCodec.azamEncodeInts(new int[] { this.tenantId, this.objectId, this.recordId });
+  }
+}
 ```
 
 ## Development
 
 Standard Java development method applies.
-Please run the following before sending a PR:
+Please make sure that code is correctly formatted and tests are passing before sending a PR.
 
-* You can format sources to match style with ```mvn formatter:format xml-format:xml-format```
-  * You can also use VS Code extension
-* Make sure tests are passing and source is properly formatted by running ```mvn verify```
+### Format source code
+```sh
+mvn formatter:format xml-format:xml-format
+```
+
+### Test
+```sh
+mvn verify
+```
+
+### Benchmark
+
+```sh
+mvn -P benchmark package
+java -jar target/benchmark.jar AzamCodecBench
+```

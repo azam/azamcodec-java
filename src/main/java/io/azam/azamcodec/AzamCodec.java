@@ -10,6 +10,12 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 
+/**
+ * Azam Codec encoder/decoder.
+ * 
+ * @author azam
+ * @since 0.0.1
+ */
 public class AzamCodec {
   final static int[] LOWER_ALPHABETS = new int[] { //
       '0', '1', '2', '3', '4', '5', '6', '7', //
@@ -20,6 +26,14 @@ public class AzamCodec {
       'r', 's', 't', 'v', 'w', 'x', 'y', 'z' //
   };
 
+  /**
+   * Consume bytes from `input`, generates Azam Codec encoded string as bytes, and writes to
+   * `output`
+   * 
+   * @param output Output stream
+   * @param input Input stream
+   * @throws IOException
+   */
   public static void azamEncodeStream(OutputStream output, InputStream input) throws IOException {
     int buf = -1;
     int prevBuf = -1;
@@ -96,6 +110,14 @@ public class AzamCodec {
     }
   }
 
+  /**
+   * Consume bytes from multiple streams `inputs` sequentially, generates Azam Codec encoded string
+   * as bytes, and writes to `output`
+   * 
+   * @param output Output stream
+   * @param inputs Input streams
+   * @throws IOException
+   */
   public static void azamEncodeStreams(OutputStream output, InputStream... inputs)
       throws IOException {
     if (inputs == null)
@@ -105,99 +127,159 @@ public class AzamCodec {
         throw new IllegalArgumentException("Arguments contains null value");
       azamEncodeStream(output, input);
     }
-
   }
 
-  public static String azamEncodeBytes(byte[]... values) throws IOException {
+  /**
+   * For each byte array `values`, generate Azam Codec encoded string section, concatenate all
+   * sections and returns the string.
+   * 
+   * @param values Input byte arrays
+   * @return Azam Codec encoded string
+   */
+  public static String azamEncodeBytes(byte[]... values) {
     if (values == null)
       throw new IllegalArgumentException("Value is null");
-    ByteArrayOutputStream output = new ByteArrayOutputStream(values.length);
-    for (byte[] value : values) {
-      if (value == null)
-        throw new IllegalArgumentException("Value contains null value");
-      ByteArrayInputStream input = new ByteArrayInputStream(value);
-      azamEncodeStream(output, input);
-    }
-    // All Azam Codec characters are ASCII so this should do fine
-    return new String(output.toByteArray(), StandardCharsets.US_ASCII);
-  }
-
-  public static String azamEncode(Number... values) throws IOException {
-    if (values == null)
-      throw new IllegalArgumentException("Value is null");
-    ByteArrayOutputStream output = new ByteArrayOutputStream(values.length);
-    for (Number value : values) {
-      if (value == null)
-        throw new IllegalArgumentException("Value contains null");
-      byte[] bytes;
-      if (value instanceof Integer) {
-        int data = value.intValue();
-        bytes = new byte[] { //
-            (byte) ((data >> 24) & 0xff), //
-            (byte) ((data >> 16) & 0xff), //
-            (byte) ((data >> 8) & 0xff), //
-            (byte) (data & 0xff), //
-        };
-      } else if (value instanceof Long) {
-        long data = value.longValue();
-        bytes = new byte[] { //
-            (byte) ((data >> 56) & 0xff), //
-            (byte) ((data >> 48) & 0xff), //
-            (byte) ((data >> 40) & 0xff), //
-            (byte) ((data >> 32) & 0xff), //
-            (byte) ((data >> 24) & 0xff), //
-            (byte) ((data >> 16) & 0xff), //
-            (byte) ((data >> 8) & 0xff), //
-            (byte) (data & 0xff), //
-        };
-      } else if (value instanceof BigInteger) {
-        BigInteger data = (BigInteger) value;
-        bytes = data.toByteArray();
-      } else {
-        throw new IllegalArgumentException("Value is not a supported Number");
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream(values.length)) {
+      for (byte[] value : values) {
+        if (value == null)
+          throw new IllegalArgumentException("Value contains null value");
+        try (ByteArrayInputStream input = new ByteArrayInputStream(value)) {
+          azamEncodeStream(output, input);
+        }
       }
-      ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-      azamEncodeStream(output, input);
+      // All Azam Codec characters are ASCII so this should do fine
+      return new String(output.toByteArray(), StandardCharsets.US_ASCII);
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new IllegalArgumentException("Unexpected IOException", io);
     }
-    return new String(output.toByteArray(), StandardCharsets.US_ASCII);
   }
 
-  public static String azamEncodeInts(int... values) throws IOException {
+  /**
+   * For each {@link java.lang.Number} array of `values`, generate Azam Codec encoded string section
+   * based on the number's byte representation in Big-Endian, concatenate all sections and returns
+   * the string.
+   * 
+   * Supported instances are:
+   * 
+   * <ul>
+   * <li>{@link java.lang.Integer}</li>
+   * <li>{@link java.lang.Long}</li>
+   * <li>{@link java.math.BigInteger}</li>
+   * </ul>
+   * 
+   * @param values Input numbers
+   * @return Azam Codec encoded string
+   */
+  public static String azamEncodeNumbers(Number... values) {
     if (values == null)
-      throw new IllegalArgumentException("Values are null");
-    ByteArrayOutputStream output = new ByteArrayOutputStream(values.length);
-    for (int value : values) {
-      byte[] bytes = new byte[] { //
-          (byte) ((value >> 24) & 0xff), //
-          (byte) ((value >> 16) & 0xff), //
-          (byte) ((value >> 8) & 0xff), //
-          (byte) (value >> 0 & 0xff), //
-      };
-      ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-      azamEncodeStream(output, input);
+      throw new IllegalArgumentException("Value is null");
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream(values.length)) {
+      for (Number value : values) {
+        if (value == null)
+          throw new IllegalArgumentException("Value contains null");
+        byte[] bytes;
+        if (value instanceof Integer) {
+          int data = value.intValue();
+          bytes = new byte[] { //
+              (byte) ((data >> 24) & 0xff), //
+              (byte) ((data >> 16) & 0xff), //
+              (byte) ((data >> 8) & 0xff), //
+              (byte) (data & 0xff), //
+          };
+        } else if (value instanceof Long) {
+          long data = value.longValue();
+          bytes = new byte[] { //
+              (byte) ((data >> 56) & 0xff), //
+              (byte) ((data >> 48) & 0xff), //
+              (byte) ((data >> 40) & 0xff), //
+              (byte) ((data >> 32) & 0xff), //
+              (byte) ((data >> 24) & 0xff), //
+              (byte) ((data >> 16) & 0xff), //
+              (byte) ((data >> 8) & 0xff), //
+              (byte) (data & 0xff), //
+          };
+        } else if (value instanceof BigInteger) {
+          BigInteger data = (BigInteger) value;
+          bytes = data.toByteArray();
+        } else {
+          throw new IllegalArgumentException("Value is not a supported Number");
+        }
+        try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+          azamEncodeStream(output, input);
+        }
+      }
+      return new String(output.toByteArray(), StandardCharsets.US_ASCII);
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new IllegalArgumentException("Unexpected IOException", io);
     }
-    return new String(output.toByteArray(), StandardCharsets.US_ASCII);
   }
 
-  public static String azamEncodeLongs(long... values) throws IOException {
+  /**
+   * For each int array of `values`, generate Azam Codec encoded string section based on the
+   * number's byte representation in Big-Endian, concatenate all sections and returns the string.
+   * 
+   * @param values Input numbers
+   * @return Azam Codec encoded string
+   */
+  public static String azamEncodeInts(int... values) {
     if (values == null)
       throw new IllegalArgumentException("Values are null");
-    ByteArrayOutputStream output = new ByteArrayOutputStream(values.length);
-    for (long value : values) {
-      byte[] bytes = new byte[] { //
-          (byte) ((value >> 56) & 0xff), //
-          (byte) ((value >> 48) & 0xff), //
-          (byte) ((value >> 40) & 0xff), //
-          (byte) ((value >> 32) & 0xff), //
-          (byte) ((value >> 24) & 0xff), //
-          (byte) ((value >> 16) & 0xff), //
-          (byte) ((value >> 8) & 0xff), //
-          (byte) (value & 0xff), //
-      };
-      ByteArrayInputStream input = new ByteArrayInputStream(bytes);
-      azamEncodeStream(output, input);
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream(values.length)) {
+      for (int value : values) {
+        byte[] bytes = new byte[] { //
+            (byte) ((value >> 24) & 0xff), //
+            (byte) ((value >> 16) & 0xff), //
+            (byte) ((value >> 8) & 0xff), //
+            (byte) (value & 0xff), //
+        };
+        try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+          azamEncodeStream(output, input);
+        }
+      }
+      return new String(output.toByteArray(), StandardCharsets.US_ASCII);
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new IllegalArgumentException("Unexpected IOException", io);
     }
-    return new String(output.toByteArray(), StandardCharsets.US_ASCII);
+  }
+
+  /**
+   * For each long array of `values`, generate Azam Codec encoded string section based on the
+   * number's byte representation in Big-Endian, concatenate all sections and returns the string.
+   * 
+   * @param values Input numbers
+   * @return Azam Codec encoded string
+   */
+  public static String azamEncodeLongs(long... values) {
+    if (values == null)
+      throw new IllegalArgumentException("Values are null");
+    try (ByteArrayOutputStream output = new ByteArrayOutputStream(values.length)) {
+      for (long value : values) {
+        byte[] bytes = new byte[] { //
+            (byte) ((value >> 56) & 0xff), //
+            (byte) ((value >> 48) & 0xff), //
+            (byte) ((value >> 40) & 0xff), //
+            (byte) ((value >> 32) & 0xff), //
+            (byte) ((value >> 24) & 0xff), //
+            (byte) ((value >> 16) & 0xff), //
+            (byte) ((value >> 8) & 0xff), //
+            (byte) (value & 0xff), //
+        };
+        try (ByteArrayInputStream input = new ByteArrayInputStream(bytes)) {
+          azamEncodeStream(output, input);
+        }
+      }
+      return new String(output.toByteArray(), StandardCharsets.US_ASCII);
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new IllegalArgumentException("Unexpected IOException", io);
+    }
   }
 
   final static byte getNybbleValue(final int symbol) {
@@ -301,8 +383,18 @@ public class AzamCodec {
     }
   }
 
-  public static void azamDecodeStream(InputStream input, OutputStream output)
-      throws IOException, ParseException {
+  /**
+   * Consume a single section of an Azam Codec encoded stream from `input` and write decoded bytes
+   * to `output`.
+   *
+   * @param input Input stream
+   * @param output Output stream
+   * @throws EOFException On end of a stream
+   * @throws IOException On unexpected IO exceptions
+   * @throws ParseException On invalid Azam Codec characters and/or character orders
+   */
+  public static void azamDecodeStreamSection(InputStream input, OutputStream output)
+      throws EOFException, IOException, ParseException {
     // Bitshift operators recasts to integer, so we have to
     // mask byte variables with 0xff before doing integer operations.
 
@@ -384,62 +476,132 @@ public class AzamCodec {
     return;
   }
 
-  public static byte[][] azamDecodeAllBytes(String value) throws IOException, ParseException {
+  /**
+   * Decode all sections of an Azam Codec encoded string `value` as arrays of byte array.
+   * 
+   * @param value Azam Codec encoded string
+   * @return Decoded value as array of byte array
+   * @throws ParseException On invalid Azam Codec characters and/or character orders
+   */
+  public static byte[][] azamDecodeBytes(String value) throws ParseException {
     if (value == null)
       throw new IllegalArgumentException("Argument is null");
-    InputStream input = new ByteArrayInputStream(value.getBytes());
-    byte[][] values = new byte[0][];
-    for (int i = 0;; i++) {
-      try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-        azamDecodeStream(input, output);
+    try (InputStream input = new ByteArrayInputStream(value.getBytes())) {
+      byte[][] values = new byte[0][];
+      for (int i = 0;; i++) {
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+          azamDecodeStreamSection(input, output);
 
-        // Extend return array
-        byte[][] extended = new byte[i + 1][];
-        if (values.length > 0) {
-          System.arraycopy(values, 0, extended, 0, values.length);
+          // Extend return array
+          byte[][] extended = new byte[i + 1][];
+          if (values.length > 0) {
+            System.arraycopy(values, 0, extended, 0, values.length);
+          }
+          extended[i] = output.toByteArray();
+          values = extended;
+        } catch (EOFException eof) {
+          // azamDecodeStream throws EOFException only on empty streams,
+          // so when we receive this, it should be the last one to ignore
+          break;
         }
-        extended[i] = output.toByteArray();
-        values = extended;
-      } catch (EOFException eof) {
-        // azamDecodeStream throws EOFException only on empty streams,
-        // so when we receive this, it should be the last one to ignore
-        break;
       }
+      return values;
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new ParseException("Unexpected IO Exception: " + io.getMessage(), -1);
     }
-    return values;
   }
 
-  public static int[] azamDecodeAllInts(String value) throws IOException, ParseException {
+  /**
+   * Decode all sections of an Azam Codec encoded string `value` as int array.
+   * 
+   * @param value Azam Codec encoded string
+   * @return Decoded value as int array
+   * @throws ParseException On invalid Azam Codec characters and/or character orders
+   */
+  public static int[] azamDecodeInts(String value) throws ParseException {
     if (value == null)
       throw new IllegalArgumentException("Argument is null");
-    InputStream input = new ByteArrayInputStream(value.getBytes());
-    int[] values = new int[0];
-    for (int i = 0;; i++) {
-      try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-        azamDecodeStream(input, output);
-        byte[] bytes = output.toByteArray();
+    try (InputStream input = new ByteArrayInputStream(value.getBytes())) {
+      int[] values = new int[0];
+      for (int i = 0;; i++) {
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+          azamDecodeStreamSection(input, output);
+          byte[] bytes = output.toByteArray();
 
-        // BigEndian byte array to int
-        if (bytes == null || bytes.length == 0 || bytes.length > Integer.BYTES)
-          throw new ParseException("Encoded value is empty or too long to convert to int", -1);
-        int decoded = 0;
-        for (int j = 0; j < bytes.length; j++) {
-          decoded = decoded << 8 | (bytes[j] & 0xff);
-        }
+          // BigEndian byte array to int
+          if (bytes == null || bytes.length == 0 || bytes.length > Integer.BYTES)
+            throw new ParseException("Encoded value is empty or too long to convert to int", -1);
+          int decoded = 0;
+          for (int j = 0; j < bytes.length; j++) {
+            decoded = decoded << 8 | (bytes[j] & 0xff);
+          }
 
-        // Extend return array
-        int[] extended = new int[i + 1];
-        if (values.length > 0) {
-          System.arraycopy(values, 0, extended, 0, values.length);
+          // Extend return array
+          int[] extended = new int[i + 1];
+          if (values.length > 0) {
+            System.arraycopy(values, 0, extended, 0, values.length);
+          }
+          extended[i] = decoded;
+          values = extended;
+        } catch (EOFException eof) {
+          // azamDecodeStream throws EOFException only on empty streams,
+          // so when we receive this, it should be the last one to ignore
+          break;
         }
-        extended[i] = decoded;
-        values = extended;
-      } catch (EOFException eof) {
-        // azamDecodeStream throws EOFException only on empty streams,
-        // so when we receive this, it should be the last one to ignore
-        break;
       }
+      return values;
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new ParseException("Unexpected IO Exception: " + io.getMessage(), -1);
     }
-    return values;
+  }
+
+  /**
+   * Decode all sections of an Azam Codec encoded string `value` as long array.
+   * 
+   * @param value Azam Codec encoded string
+   * @return Decoded value as long array
+   * @throws ParseException On invalid Azam Codec characters and/or character orders
+   */
+  public static long[] azamDecodeLongs(String value) throws ParseException {
+    if (value == null)
+      throw new IllegalArgumentException("Argument is null");
+    try (InputStream input = new ByteArrayInputStream(value.getBytes())) {
+      long[] values = new long[0];
+      for (int i = 0;; i++) {
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+          azamDecodeStreamSection(input, output);
+          byte[] bytes = output.toByteArray();
+
+          // BigEndian byte array to int
+          if (bytes == null || bytes.length == 0 || bytes.length > Long.BYTES)
+            throw new ParseException("Encoded value is empty or too long to convert to int", -1);
+          long decoded = 0;
+          for (int j = 0; j < bytes.length; j++) {
+            decoded = decoded << 8 | (bytes[j] & 0xff);
+          }
+
+          // Extend return array
+          long[] extended = new long[i + 1];
+          if (values.length > 0) {
+            System.arraycopy(values, 0, extended, 0, values.length);
+          }
+          extended[i] = decoded;
+          values = extended;
+        } catch (EOFException eof) {
+          // azamDecodeStream throws EOFException only on empty streams,
+          // so when we receive this, it should be the last one to ignore
+          break;
+        }
+      }
+      return values;
+    } catch (IOException io) {
+      // We should not get here because we are only using byte array streams,
+      // unless there are severe memory IO errors
+      throw new ParseException("Unexpected IO Exception: " + io.getMessage(), -1);
+    }
   }
 }
