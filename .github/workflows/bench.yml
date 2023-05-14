@@ -13,13 +13,10 @@ on:
 
 jobs:
   test:
-    name: bench-${{matrix.distribution}}-${{matrix.version}}
+    name: bench-${{matrix.name}}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        name:
-          - jdk8
-          - jdk11
         include:
           - name: jdk8
             version: 8
