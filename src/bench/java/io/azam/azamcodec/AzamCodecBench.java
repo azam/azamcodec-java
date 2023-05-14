@@ -16,8 +16,8 @@ import static io.azam.azamcodec.AzamCodec.*;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Benchmark)
 @Fork(value = 1, jvmArgs = {"-Xms256M", "-Xmx256M"})
-@Warmup(iterations = 1)
-@Measurement(iterations = 1)
+@Warmup(iterations = 3)
+@Measurement(iterations = 10)
 public class AzamCodecBench {
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder().include(AzamCodecBench.class.getSimpleName()).build();
