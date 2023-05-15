@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.azam.azamcodec</groupId>
   <artifactId>azamcodec</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <name>azamcodec</name>
   <description>An encoder and decoder implementation in Java for Azam Codec, a lexicographically sortable multi-section base16 encoding of byte array.</description>
   <url>https://github.com/azam/azamcodec-java</url>
